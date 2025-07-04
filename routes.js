@@ -7,4 +7,7 @@ const router = Router();
 router.post("/user", userController.createUser); // Crear usuario
 router.get("/propuestas", proposalControllers.listTematicas); // Listar propuestas
 router.post("/propuestas", proposalControllers.createTematica); // Crear propuesta
+router.put("/actividades", activityControllers.createActivity); // Crear actividad
+router.get("/actividades", activityControllers.listActivities); // Listar actividades
+router.put("/actividades/:id", activityControllers.updateActivity); // Actualizar actividad
 export default router;
