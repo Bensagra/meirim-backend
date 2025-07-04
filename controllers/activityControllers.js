@@ -37,10 +37,10 @@ export const updateActivity = async (req, res) => {
       data: {
        fecha: new Date(date),
        participants: {
-        connect: user.map(userId => ({ id: parseInt(userId) }))
+        connect: user.map(userDni => ({ dni: userDni }))
        },
        tematicas:{
-        connect: temasId.map(id => ({ id: parseInt(id) }))
+        connectOrCreate: temasId.map(id => ({ id: parseInt(id) }))
        }
       }
     });
