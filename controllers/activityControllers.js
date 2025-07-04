@@ -36,12 +36,17 @@ export const updateActivity = async (req, res) => {
       where: { id: parseInt(id) },
       data: {
        fecha: new Date(date),
-       participants: {
-        connect: user.map(userDni => ({ dni: userDni }))
-       },
        tematicas:{
-        connectOrCreate: temasId.map(id => ({ id: parseInt(id) }))
-       }
+        connectOrCreate: temasId.map((temaId) => ({
+          where: { id: temaId },
+          create: { id: temaId }
+        }))
+       },
+       participants:{
+        connect: user.map((userId) => ({
+          dni: userId.toString() // Ensure dni is a string
+        }))
+      }
       }
     });
     res.status(200).json(updatedActivity);
