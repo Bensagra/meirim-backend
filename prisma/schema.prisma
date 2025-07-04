@@ -19,8 +19,8 @@ enum EstadoActividad {
 /// Usuarios de la aplicación
 model User {
   id           Int             @id @default(autoincrement())
-  nombre       String
-  apellido     String
+  name       String
+  surname     String
   dni          String          @unique
   email        String          @unique
   actividades  ActivityUser[]  // relaciones a actividades
