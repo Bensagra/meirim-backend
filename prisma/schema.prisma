@@ -31,6 +31,7 @@ model Tematica {
   id           Int                   @id @default(autoincrement())
   tematica     String
   usada        Boolean               @default(false)
+  createdAt   DateTime              @default(now())
   actividades  ActivityTematica[]    // relaciones a actividades
 }
 
