@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
             name,
             surname,
             email,
-            dni
+            dni: dni.toString() // Convert dni to string if it's not already
         }
     }).then((user) => {
         res.status(201).json(user);
@@ -20,7 +20,7 @@ export const getUser = async (req,res) => {
     const {dni} = req.params;
     await prisma.user.findUnique({
         where: {
-            dni: parseInt(dni)
+            dni: dni.toString()
         }
     }).then((user) => {
         if (user) {
