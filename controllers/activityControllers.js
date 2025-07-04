@@ -77,7 +77,7 @@ export const updateActivity = async (req, res) => {
       }),
 
       // recrear vínculos con temáticas
-      prisma.activityTematica.createMany({
+     await prisma.activityTematica.createMany({
         data: tematicas.map((t) => ({
           activityId,
           tematicaId: t.id,
@@ -86,12 +86,12 @@ export const updateActivity = async (req, res) => {
       }),
     ]);
     if (users.length >= 3) {
-      prisma.activity.update({
+     await prisma.activity.update({
         where: { id: activityId },
         data: { estado: EstadoActividad.YA_HAY_GENTE_PERO_NO_SE_PLANIFICO }, // Actualizar estado a confirmada si hay 3 o más participantes
       });
     }else {
-      prisma.activity.update({
+     await prisma.activity.update({
         where: { id: activityId },
         data: { estado: EstadoActividad.HAY_GENTE_PERO_NO_NECESARIA }, // Actualizar estado a pendiente si hay menos de 3 participantes
       });
