@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { EstadoActividad, PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const createActivity = async (req, res) => {
@@ -29,27 +29,87 @@ export const listActivities = async (req, res) => {
 }
 
 export const updateActivity = async (req, res) => {
-  const { id } = req.params;
-  const {  temasId, user } = req.body;
+  const activityId = parseInt(req.params.id, 10);
+  const { temasId = [], user: dnis = [] } = req.body;
+
   try {
-    const updatedActivity = await prisma.activity.update({
-      where: { id: parseInt(id) },
-      data: {
-       tematicas:{
-        connectOrCreate: temasId.map((temaId) => ({
-          where: { id: temaId },
-          create: { id: temaId }
-        }))
-       },
-       participants:{
-        connect: user.map((userId) => ({
-          dni: userId.toString() // Ensure dni is a string
-        }))
-      }
-      }
+    // 1) Find or create cada temática por su texto
+    const tematicas = await Promise.all(
+      temasId.map(async (label) => {
+        // buscar por el campo 'tematica'
+        let tema = await prisma.tematica.findFirst({
+          where: { tematica: label },
+        });
+        if (!tema) {
+          tema = await prisma.tematica.create({
+            data: { tematica: label },
+          });
+        }
+        return tema;
+      })
+    );
+
+    // 2) Cargar usuarios existentes por DNI
+    const users = await prisma.user.findMany({
+      where: { dni: { in: dnis.map((d) => d.toString()) } },
     });
-    res.status(200).json(updatedActivity);
+    if (users.length !== dnis.length) {
+      const encontrados = users.map((u) => u.dni);
+      const faltantes = dnis.filter((d) => !encontrados.includes(d.toString()));
+      return res
+        .status(400)
+        .json({ error: `Usuarios no encontrados: ${faltantes.join(', ')}` });
+    }
+
+    // 3) En transacción, borramos relaciones antiguas y creamos las nuevas
+    await prisma.$transaction([
+      // borrar vínculos previos
+      prisma.activityUser.deleteMany({ where: { activityId } }),
+      prisma.activityTematica.deleteMany({ where: { activityId } }),
+
+      // recrear vínculos con usuarios
+      prisma.activityUser.createMany({
+        data: users.map((u) => ({
+          activityId,
+          userId: u.id,
+        })),
+        skipDuplicates: true,
+      }),
+
+      // recrear vínculos con temáticas
+      prisma.activityTematica.createMany({
+        data: tematicas.map((t) => ({
+          activityId,
+          tematicaId: t.id,
+        })),
+        skipDuplicates: true,
+      }),
+    ]);
+    if (users.length >= 3) {
+      prisma.activity.update({
+        where: { id: activityId },
+        data: { estado: EstadoActividad.YA_HAY_GENTE_PERO_NO_SE_PLANIFICO }, // Actualizar estado a confirmada si hay 3 o más participantes
+      });
+    }else {
+      prisma.activity.update({
+        where: { id: activityId },
+        data: { estado: EstadoActividad.HAY_GENTE_PERO_NO_NECESARIA }, // Actualizar estado a pendiente si hay menos de 3 participantes
+      });
+    }
+
+    // 4) Obtener la actividad ya actualizada
+    const updated = await prisma.activity.findUnique({
+      where: { id: activityId },
+
+      include: {
+        participants: { include: { user: true } },
+        tematicas:    { include: { tematica: true } },
+      },
+    });
+
+    return res.status(200).json(updated);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error en updateActivity:', error);
+    return res.status(500).json({ error: error.message });
   }
-}
+};
