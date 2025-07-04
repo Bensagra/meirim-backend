@@ -30,12 +30,11 @@ export const listActivities = async (req, res) => {
 
 export const updateActivity = async (req, res) => {
   const { id } = req.params;
-  const { date, temasId, user } = req.body;
+  const {  temasId, user } = req.body;
   try {
     const updatedActivity = await prisma.activity.update({
       where: { id: parseInt(id) },
       data: {
-       fecha: new Date(date),
        tematicas:{
         connectOrCreate: temasId.map((temaId) => ({
           where: { id: temaId },
