@@ -1,5 +1,3 @@
-// schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,41 +7,62 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Status {
-  NO_ACTIVITY   // 0 → gris
-  LACKING       // 1 → rojo
-  FULL          // 2 → verde
+/// Estados posibles de una actividad
+enum EstadoActividad {
+  NO_HAY_NADIE                      // Estado1: No hay nadie para planificar
+  HAY_GENTE_PERO_NO_NECESARIA       // Estado2: Tiene gente para planificar pero no la necesaria
+  YA_HAY_GENTE_PERO_NO_SE_PLANIFICO // Estado3: Ya está la gente pero no se planificó
+  FUE_PLANIFICADA                   // Estado4: Fue planificada
+  FUE_DADA_LA_PLANIFICACION         // Estado5: Fue dada la planificación
 }
 
-/// Día de planificación con su estado
+/// Usuarios de la aplicación
+model User {
+  id           Int             @id @default(autoincrement())
+  nombre       String
+  apellido     String
+  dni          String          @unique
+  email        String          @unique
+  actividades  ActivityUser[]  // relaciones a actividades
+}
+
+/// Temáticas publicadas anónimamente
+model Tematica {
+  id           Int                   @id @default(autoincrement())
+  tematica     String
+  usada        Boolean               @default(false)
+  actividades  ActivityTematica[]    // relaciones a actividades
+}
+
+/// Día de planificación con su estado y temáticas
 model Activity {
-  id         Int                   @id @default(autoincrement())
-  date       DateTime              @unique
-  status     Status                @default(NO_ACTIVITY)
-  createdAt  DateTime              @default(now())
-  updatedAt  DateTime              @updatedAt
-
-  // relaciones many-to-many con propuestas
-  proposals  ActivityProposal[]
+  id             Int                   @id @default(autoincrement())
+  fecha          DateTime              @unique     // Fecha de la actividad
+  estado         EstadoActividad       @default(NO_HAY_NADIE)
+  participants   ActivityUser[]        // usuarios que realizan la actividad
+  tematicas      ActivityTematica[]    // temáticas asociadas a la actividad
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
 }
 
-/// Propuesta anónima de actividad (banco de ideas)
-model Proposal {
-  id         Int                   @id @default(autoincrement())
-  content    String
-  createdAt  DateTime              @default(now())
+/// Tabla de unión para asociar usuarios a una actividad
+model ActivityUser {
+  activity    Activity   @relation(fields: [activityId], references: [id])
+  activityId  Int
 
-  // relaciones many-to-many con planificaciones
-  activities ActivityProposal[]
+  user        User       @relation(fields: [userId], references: [id])
+  userId      Int
+
+  @@id([activityId, userId])
 }
 
-/// Tabla de unión para asociar propuestas a una planificación
-model ActivityProposal {
-  activity   Activity   @relation(fields: [activityId], references: [id])
-  activityId Int
+/// Tabla de unión para asociar temáticas a una actividad
+model ActivityTematica {
+  activity     Activity   @relation(fields: [activityId], references: [id])
+  activityId   Int
 
-  proposal   Proposal   @relation(fields: [proposalId], references: [id])
-  proposalId Int
+  tematica     Tematica   @relation(fields: [tematicaId], references: [id])
+  tematicaId   Int
 
-  @@id([activityId, proposalId])
+  @@id([activityId, tematicaId])
 }

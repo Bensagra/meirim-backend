@@ -1,0 +1,19 @@
+import { PrismaClient, Status } from "@prisma/client";
+const prisma = new PrismaClient();
+
+ export const createUser = async (req,res) => {
+    const {name,surname,email,dni} = req.body;
+    await prisma.user.create({
+        data: {
+            name,
+            surname,
+            email,
+            dni
+        }
+    }).then((user) => {
+        res.status(201).json(user);
+    }).catch((error) => {
+        res.status(500).json({error: error.message});
+    });
+};
+
