@@ -42,7 +42,7 @@ export const updateActivity = async (req, res) => {
         });
         if (!tema) {
           tema = await prisma.tematica.create({
-            data: { tematica: label },
+            data: { tematica: label, usada: true },
           });
         }
         return tema;
