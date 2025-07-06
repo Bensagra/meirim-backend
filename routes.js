@@ -11,4 +11,5 @@ router.post("/propuestas", proposalControllers.createTematica); // Crear propues
 router.put("/actividades", activityControllers.createActivity); // Crear actividad
 router.get("/actividades", activityControllers.listActivities); // Listar actividades
 router.put("/actividades/:id", activityControllers.updateActivity); // Actualizar actividad
+router.patch('/actividades/:id', activityControllers.patchActivity); // Actualizar estado de actividad
 export default router;
