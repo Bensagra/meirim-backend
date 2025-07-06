@@ -30,13 +30,13 @@ export const listActivities = async (req, res) => {
 
 export const updateActivity = async (req, res) => {
   const activityId = parseInt(req.params.id, 10);
-  const { temasId = [], user: dnis = [] } = req.body;
+  // destructuramos acorde al front: participants → array de DNIs, topics → array de labels
+  const { participants: dnis = [], topics = [] } = req.body;
 
   try {
     // 1) Find or create cada temática por su texto
     const tematicas = await Promise.all(
-      temasId.map(async (label) => {
-        // buscar por el campo 'tematica'
+      topics.map(async (label) => {
         let tema = await prisma.tematica.findFirst({
           where: { tematica: label },
         });
@@ -51,7 +51,7 @@ export const updateActivity = async (req, res) => {
 
     // 2) Cargar usuarios existentes por DNI
     const users = await prisma.user.findMany({
-      where: { dni: { in: dnis.map((d) => d.toString()) } },
+      where: { dni: { in: dnis.map(String) } },
     });
     if (users.length !== dnis.length) {
       const encontrados = users.map((u) => u.dni);
@@ -61,13 +61,9 @@ export const updateActivity = async (req, res) => {
         .json({ error: `Usuarios no encontrados: ${faltantes.join(', ')}` });
     }
 
-    // 3) En transacción, borramos relaciones antiguas y creamos las nuevas
+    // 3) En transacción, agregamos sólo las nuevas relaciones (skipDuplicates)
     await prisma.$transaction([
-      // borrar vínculos previos
-      prisma.activityUser.deleteMany({ where: { activityId } }),
-      prisma.activityTematica.deleteMany({ where: { activityId } }),
-
-      // recrear vínculos con usuarios
+      // vincular usuarios (sólo crea los que falten)
       prisma.activityUser.createMany({
         data: users.map((u) => ({
           activityId,
@@ -75,8 +71,7 @@ export const updateActivity = async (req, res) => {
         })),
         skipDuplicates: true,
       }),
-
-      // recrear vínculos con temáticas
+      // vincular temáticas (idem)
       prisma.activityTematica.createMany({
         data: tematicas.map((t) => ({
           activityId,
@@ -85,25 +80,31 @@ export const updateActivity = async (req, res) => {
         skipDuplicates: true,
       }),
     ]);
-    if (users.length >= 3) {
-      await prisma.activity.update({
-        where: { id: activityId },
-        data: { estado: EstadoActividad.YA_HAY_GENTE_PERO_NO_SE_PLANIFICO }, // Actualizar estado a confirmada si hay 3 o más participantes
-      });
-    }else {
-      await prisma.activity.update({
-        where: { id: activityId },
-        data: { estado: EstadoActividad.HAY_GENTE_PERO_NO_NECESARIA }, // Actualizar estado a pendiente si hay menos de 3 participantes
-      });
-    }
 
-    // 4) Obtener la actividad ya actualizada
+    // 4) Contar participantes para actualizar estado
+    const totalParticipants = await prisma.activityUser.count({
+      where: { activityId },
+    });
+    const nuevoEstado =
+      totalParticipants >= 3
+        ? EstadoActividad.YA_HAY_GENTE_PERO_NO_SE_PLANIFICO
+        : EstadoActividad.HAY_GENTE_PERO_NO_NECESARIA;
+
+    await prisma.activity.update({
+      where: { id: activityId },
+      data: { estado: nuevoEstado },
+    });
+
+    // 5) Devolver actividad actualizada con relaciones
     const updated = await prisma.activity.findUnique({
       where: { id: activityId },
-
       include: {
-        participants: { include: { user: true } },
-        tematicas:    { include: { tematica: true } },
+        participants: {
+          include: { user: true },
+        },
+        tematicas: {
+          include: { tematica: true },
+        },
       },
     });
 
