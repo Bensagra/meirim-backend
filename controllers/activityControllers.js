@@ -43,7 +43,7 @@ export const patchActivity = async (req, res) => {
     nuevoEstado = EstadoActividad.FUE_PLANIFICADA;
   } else {
     const totalParticipants = await prisma.activityUser.count({
-      where: { activityId },
+      where: { activityId: id },
     });
      nuevoEstado =
       totalParticipants >= 3
