@@ -21,6 +21,14 @@ export const listActivities = async (req, res) => {
   try {
     const activities = await prisma.activity.findMany({
       orderBy: { fecha: 'desc' }
+      , include: {
+        participants: {
+          include: { user: true }
+        },
+        tematicas: {
+          include: { tematica: true }
+        }
+      }
     });
     res.status(200).json(activities);
   } catch (error) {
