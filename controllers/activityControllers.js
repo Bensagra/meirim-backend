@@ -20,7 +20,7 @@ export const createActivity = async (req, res) => {
 export const listActivities = async (req, res) => {
   try {
     const activities = await prisma.activity.findMany({
-      orderBy: { fecha: 'desc' }
+      orderBy: { fecha: 'asc' }
       , include: {
         participants: {
           include: { user: true }
@@ -31,6 +31,31 @@ export const listActivities = async (req, res) => {
       }
     });
     res.status(200).json(activities);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+export const patchActivity = async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { estado, notas } = req.body;
+  let nuevoEstado;
+  if (estado) {
+    nuevoEstado = EstadoActividad.FUE_PLANIFICADA;
+  } else {
+    const totalParticipants = await prisma.activityUser.count({
+      where: { activityId },
+    });
+     nuevoEstado =
+      totalParticipants >= 3
+        ? EstadoActividad.YA_HAY_GENTE_PERO_NO_SE_PLANIFICO
+        : EstadoActividad.HAY_GENTE_PERO_NO_NECESARIA;
+  }
+  try {
+    const updated = await prisma.activity.update({
+      where: { id },
+      data: { estado: nuevoEstado, notas }
+    });
+    res.status(200).json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
