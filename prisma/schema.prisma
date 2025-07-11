@@ -24,6 +24,8 @@ model User {
   dni          String          @unique
   email        String          @unique
   actividades  ActivityUser[]  // relaciones a actividades
+
+  disponibilidadHorarios DisponibilidadHorarios[]
 }
 
 /// Temáticas publicadas anónimamente
@@ -67,4 +69,16 @@ model ActivityTematica {
   tematicaId   Int
 
   @@id([activityId, tematicaId])
+}
+
+
+
+model DisponibilidadHorarios {
+  id      Int    @id @default(autoincrement())
+  user    User   @relation(fields: [userId], references: [id])
+  userId  Int
+  dia     String
+  horario String
+
+  @@unique([userId, dia, horario])
 }
