@@ -2,6 +2,10 @@ import { Router } from "express";
 import * as activityControllers from "./controllers/activityControllers.js";
 import * as proposalControllers from "./controllers/proporsalsControllers.js";
 import * as userController from "./controllers/userController.js";
+import { EstadoActividad, PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
 const router = Router();
 // Lista todos o por mes:  GET /api/activities-status?year=2025&month=7
 router.post("/user", userController.createUser); // Crear usuario
@@ -13,7 +17,7 @@ router.get("/actividades", activityControllers.listActivities); // Listar activi
 router.put("/actividades/:id", activityControllers.updateActivity); // Actualizar actividad
 router.patch('/actividades/:id', activityControllers.patchActivity); // Actualizar estado de actividad
 
-app.get('/api/activities/upcoming', async (req, res) => {
+router.get('/api/activities/upcoming', async (req, res) => {
   try {
     const now = new Date();
     const items = await prisma.activity.findMany({
@@ -31,7 +35,7 @@ app.get('/api/activities/upcoming', async (req, res) => {
   }
 });
 
-app.post('/api/activities', async (req, res) => {
+router.post('/api/activities', async (req, res) => {
   try {
     const { fecha, estado, participants = [], tematicas = [], notas } = req.body;
 
@@ -90,7 +94,7 @@ app.post('/api/activities', async (req, res) => {
 });
 
 // ---- Temáticas ----
-app.get('/api/tematicas', async (req, res) => {
+router.get('/api/tematicas', async (req, res) => {
   try {
     const items = await prisma.tematica.findMany({
       orderBy: [{ usada: 'asc' }, { createdAt: 'desc' }]
@@ -101,7 +105,7 @@ app.get('/api/tematicas', async (req, res) => {
   }
 });
 
-app.post('/api/tematicas', async (req, res) => {
+router.post('/api/tematicas', async (req, res) => {
   try {
     const { tematica } = req.body;
     const created = await prisma.tematica.create({ data: { tematica } });
@@ -112,7 +116,7 @@ app.post('/api/tematicas', async (req, res) => {
 });
 
 // ---- PenPals lead ----
-app.post('/api/penpals', async (req, res) => {
+router.post('/api/penpals', async (req, res) => {
   try {
     const { nombre, email, idioma } = req.body;
     const lead = await prisma.penpalLead.upsert({
@@ -128,7 +132,7 @@ app.post('/api/penpals', async (req, res) => {
 });
 
 // ---- Tienda notify ----
-app.post('/api/notify', async (req, res) => {
+router.post('/api/notify', async (req, res) => {
   try {
     const { email, preferencia } = req.body;
     const rec = await prisma.shopNotify.create({ data: { email, preferencia } });
