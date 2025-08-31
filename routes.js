@@ -97,6 +97,7 @@ router.post('/api/activities', async (req, res) => {
 router.get('/api/tematicas', async (req, res) => {
   try {
     const items = await prisma.tematica.findMany({
+        where: { usada: false },
       orderBy: [{ usada: 'asc' }, { createdAt: 'desc' }]
     });
     res.json(items);
