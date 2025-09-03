@@ -36,6 +36,29 @@ export const listActivities = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 }
+
+export const updateActivityState = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { estado, notas } = req.body;
+
+    const updated = await prisma.activity.update({
+      where: { id: Number(id) },
+      data: { 
+        estado: estado ?? undefined,
+        notas: notas ?? undefined
+      },
+      include: {
+        participants: { include: { user: true } },
+        tematicas: { include: { tematica: true } }
+      }
+    });
+
+    res.status(200).json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 export const patchActivity = async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { estado, notas } = req.body;
