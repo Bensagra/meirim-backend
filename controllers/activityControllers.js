@@ -19,23 +19,24 @@ export const createActivity = async (req, res) => {
 
 export const listActivities = async (req, res) => {
   try {
+    // Truncar la fecha a medianoche (así no se excluye el día actual)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const activities = await prisma.activity.findMany({
-      where: { fecha: { gte: new Date() } },
-      orderBy: { fecha: 'asc' }
-      , include: {
-        participants: {
-          include: { user: true }
-        },
-        tematicas: {
-          include: { tematica: true }
-        }
+      where: { fecha: { gte: today } },
+      orderBy: { fecha: 'asc' },
+      include: {
+        participants: { include: { user: true } },
+        tematicas: { include: { tematica: true } }
       }
     });
+
     res.status(200).json(activities);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-}
+};
 
 export const updateActivityState = async (req, res) => {
   try {
