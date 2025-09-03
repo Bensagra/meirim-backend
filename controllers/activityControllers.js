@@ -20,6 +20,7 @@ export const createActivity = async (req, res) => {
 export const listActivities = async (req, res) => {
   try {
     const activities = await prisma.activity.findMany({
+      where: { fecha: { gte: new Date() } },
       orderBy: { fecha: 'asc' }
       , include: {
         participants: {

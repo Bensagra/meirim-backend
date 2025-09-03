@@ -47,6 +47,7 @@ model Activity {
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
   notas          String?               // Notas opcionales sobre la actividad
+  blocked       Boolean               @default(false)
 }
 
 /// Tabla de unión para asociar usuarios a una actividad
