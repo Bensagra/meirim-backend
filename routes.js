@@ -92,7 +92,7 @@ router.post('/api/activities', async (req, res) => {
     res.status(400).send('No se pudo crear la actividad');
   }
 });
-router.patch('/actividades/:id', updateActivityState);
+router.patch('/actividades/:id', activityControllers.patchActivity);
 
 // ---- Temáticas ----
 router.get('/api/tematicas', async (req, res) => {
