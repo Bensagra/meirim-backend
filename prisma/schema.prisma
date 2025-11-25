@@ -102,3 +102,63 @@ model ShopNotify {
 
   @@index([email])
 }
+
+/// Categorías de nominaciones para el campamento
+model CategoriaNominacion {
+  id           Int           @id @default(autoincrement())
+  nombre       String        @unique
+  descripcion  String?
+  orden        Int           @default(0)
+  activa       Boolean       @default(true)
+  nominaciones Nominacion[]
+}
+
+/// Campistas que pueden ser nominados
+model Campista {
+  id           Int           @id @default(autoincrement())
+  nombre       String        @unique
+  nominaciones Nominacion[]
+}
+
+/// Votos de nominaciones
+model Nominacion {
+  id          Int                    @id @default(autoincrement())
+  categoria   CategoriaNominacion    @relation(fields: [categoriaId], references: [id])
+  categoriaId Int
+  campista    Campista               @relation(fields: [campistaId], references: [id])
+  campistaId  Int
+  votante     String                 // DNI o identificador del votante
+  createdAt   DateTime               @default(now())
+
+  @@unique([categoriaId, votante])
+  @@index([categoriaId])
+  @@index([campistaId])
+}
+
+/// Preguntas para "100 Meirimers Dicen"
+model Pregunta100 {
+  id          Int                @id @default(autoincrement())
+  pregunta    String
+  orden       Int                @default(0)
+  activa      Boolean            @default(true)
+  bloqueada   Boolean            @default(false) // Bloqueada para no recibir más respuestas
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  respuestas  Respuesta100[]
+  
+  @@index([activa, bloqueada])
+}
+
+/// Respuestas anónimas de los usuarios
+model Respuesta100 {
+  id          Int          @id @default(autoincrement())
+  pregunta    Pregunta100  @relation(fields: [preguntaId], references: [id], onDelete: Cascade)
+  preguntaId  Int
+  respuesta   String       // La respuesta del usuario (normalizada)
+  votante     String       // Identificador anónimo del votante
+  createdAt   DateTime     @default(now())
+
+  @@unique([preguntaId, votante])
+  @@index([preguntaId])
+  @@index([respuesta])
+}

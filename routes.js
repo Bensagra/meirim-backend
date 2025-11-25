@@ -2,6 +2,8 @@ import { Router } from "express";
 import * as activityControllers from "./controllers/activityControllers.js";
 import * as proposalControllers from "./controllers/proporsalsControllers.js";
 import * as userController from "./controllers/userController.js";
+import * as nominacionesController from "./controllers/nominacionesController.js";
+import * as meirimers100Controller from "./controllers/meirimers100Controller.js";
 import { EstadoActividad, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -144,4 +146,31 @@ router.post('/api/notify', async (req, res) => {
     res.status(400).send('No se pudo suscribir');
   }
 });
+
+// ---- Nominaciones ----
+router.get('/api/nominaciones/categorias', nominacionesController.getCategorias);
+router.get('/api/nominaciones/campistas', nominacionesController.getCampistas);
+router.post('/api/nominaciones/votar', nominacionesController.votar);
+router.get('/api/nominaciones/votos/:votante', nominacionesController.getVotosUsuario);
+router.get('/api/nominaciones/resultados', nominacionesController.getResultados);
+router.post('/api/nominaciones/inicializar', nominacionesController.inicializarDatos);
+
+// ---- 100 Meirimers Dicen - Votación ----
+router.get('/api/100meirimers/preguntas/votar', meirimers100Controller.getPreguntasParaVotar);
+router.post('/api/100meirimers/responder', meirimers100Controller.responderPregunta);
+router.get('/api/100meirimers/mis-respuestas/:votante', meirimers100Controller.getMisRespuestas);
+
+// ---- 100 Meirimers Dicen - Juego ----
+router.get('/api/100meirimers/preguntas/juego', meirimers100Controller.getPreguntasJuego);
+router.get('/api/100meirimers/pregunta/:id/resultados', meirimers100Controller.getPreguntaConResultados);
+router.post('/api/100meirimers/verificar', meirimers100Controller.verificarRespuesta);
+
+// ---- 100 Meirimers Dicen - Admin ----
+router.get('/api/100meirimers/admin/preguntas', meirimers100Controller.getAllPreguntas);
+router.post('/api/100meirimers/admin/preguntas', meirimers100Controller.crearPregunta);
+router.put('/api/100meirimers/admin/preguntas/:id', meirimers100Controller.actualizarPregunta);
+router.delete('/api/100meirimers/admin/preguntas/:id', meirimers100Controller.eliminarPregunta);
+router.get('/api/100meirimers/admin/preguntas/:id/respuestas', meirimers100Controller.getRespuestasPregunta);
+router.get('/api/100meirimers/admin/estadisticas', meirimers100Controller.getEstadisticas);
+
 export default router;
