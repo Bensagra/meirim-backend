@@ -23,7 +23,7 @@ app.use(cors(corsOptions));
 app.set("port", 3000);
 app.use(morgan("dev"));
 app.use(express.json());
-app.use("/", routes);
+app.use("/api", routes);
 /*let body = {
   cartId: 2,
   userId: 1

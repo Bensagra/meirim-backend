@@ -19,7 +19,7 @@ router.get("/actividades", activityControllers.listActivities); // Listar activi
 router.put("/actividades/:id", activityControllers.updateActivity); // Actualizar actividad
 router.patch('/actividades/:id', activityControllers.patchActivity); // Actualizar estado de actividad
 
-router.get('/api/activities/upcoming', async (req, res) => {
+router.get('/activities/upcoming', async (req, res) => {
   try {
     const now = new Date();
     const items = await prisma.activity.findMany({
@@ -37,7 +37,7 @@ router.get('/api/activities/upcoming', async (req, res) => {
   }
 });
 
-router.post('/api/activities', async (req, res) => {
+router.post('/activities', async (req, res) => {
   try {
     const { fecha, estado, participants = [], tematicas = [], notas } = req.body;
 
@@ -97,7 +97,7 @@ router.post('/api/activities', async (req, res) => {
 router.patch('/actividades/:id', activityControllers.patchActivity);
 
 // ---- Temáticas ----
-router.get('/api/tematicas', async (req, res) => {
+router.get('/tematicas', async (req, res) => {
   try {
     const items = await prisma.tematica.findMany({
         where: { usada: false },
@@ -109,7 +109,7 @@ router.get('/api/tematicas', async (req, res) => {
   }
 });
 
-router.post('/api/tematicas', async (req, res) => {
+router.post('/tematicas', async (req, res) => {
   try {
     const { tematica } = req.body;
     const created = await prisma.tematica.create({ data: { tematica } });
@@ -120,7 +120,7 @@ router.post('/api/tematicas', async (req, res) => {
 });
 
 // ---- PenPals lead ----
-router.post('/api/penpals', async (req, res) => {
+router.post('/penpals', async (req, res) => {
   try {
     const { nombre, email, idioma } = req.body;
     const lead = await prisma.penpalLead.upsert({
@@ -136,7 +136,7 @@ router.post('/api/penpals', async (req, res) => {
 });
 
 // ---- Tienda notify ----
-router.post('/api/notify', async (req, res) => {
+router.post('/notify', async (req, res) => {
   try {
     const { email, preferencia } = req.body;
     const rec = await prisma.shopNotify.create({ data: { email, preferencia } });
@@ -148,21 +148,21 @@ router.post('/api/notify', async (req, res) => {
 });
 
 // ---- Nominaciones ----
-router.get('/api/nominaciones/categorias', nominacionesController.getCategorias);
-router.get('/api/nominaciones/campistas', nominacionesController.getCampistas);
-router.post('/api/nominaciones/votar', nominacionesController.votar);
-router.get('/api/nominaciones/votos/:votante', nominacionesController.getVotosUsuario);
-router.get('/api/nominaciones/resultados', nominacionesController.getResultados);
-router.post('/api/nominaciones/inicializar', nominacionesController.inicializarDatos);
+router.get('/nominaciones/categorias', nominacionesController.getCategorias);
+router.get('/nominaciones/campistas', nominacionesController.getCampistas);
+router.post('/nominaciones/votar', nominacionesController.votar);
+router.get('/nominaciones/votos/:votante', nominacionesController.getVotosUsuario);
+router.get('/nominaciones/resultados', nominacionesController.getResultados);
+router.post('/nominaciones/inicializar', nominacionesController.inicializarDatos);
 
 // ---- 100 Meirimers Dicen ----
-router.get('/api/100meirimers/preguntas', meirimers100Controller.getPreguntasJuego);
-router.post('/api/100meirimers/verificar', meirimers100Controller.verificarOrden);
-router.get('/api/100meirimers/admin/preguntas', meirimers100Controller.getAllPreguntas);
-router.post('/api/100meirimers/admin/preguntas', meirimers100Controller.crearPregunta);
-router.put('/api/100meirimers/admin/preguntas/:id', meirimers100Controller.actualizarPregunta);
-router.delete('/api/100meirimers/admin/preguntas/:id', meirimers100Controller.eliminarPregunta);
-router.get('/api/100meirimers/admin/estadisticas', meirimers100Controller.getEstadisticas);
-router.post('/api/100meirimers/admin/inicializar', meirimers100Controller.inicializarDatos);
+router.get('/100meirimers/preguntas', meirimers100Controller.getPreguntasJuego);
+router.post('/100meirimers/verificar', meirimers100Controller.verificarOrden);
+router.get('/100meirimers/admin/preguntas', meirimers100Controller.getAllPreguntas);
+router.post('/100meirimers/admin/preguntas', meirimers100Controller.crearPregunta);
+router.put('/100meirimers/admin/preguntas/:id', meirimers100Controller.actualizarPregunta);
+router.delete('/100meirimers/admin/preguntas/:id', meirimers100Controller.eliminarPregunta);
+router.get('/100meirimers/admin/estadisticas', meirimers100Controller.getEstadisticas);
+router.post('/100meirimers/admin/inicializar', meirimers100Controller.inicializarDatos);
 
 export default router;
