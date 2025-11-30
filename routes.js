@@ -155,22 +155,14 @@ router.get('/api/nominaciones/votos/:votante', nominacionesController.getVotosUs
 router.get('/api/nominaciones/resultados', nominacionesController.getResultados);
 router.post('/api/nominaciones/inicializar', nominacionesController.inicializarDatos);
 
-// ---- 100 Meirimers Dicen - Votación ----
-router.get('/api/100meirimers/preguntas/votar', meirimers100Controller.getPreguntasParaVotar);
-router.post('/api/100meirimers/responder', meirimers100Controller.responderPregunta);
-router.get('/api/100meirimers/mis-respuestas/:votante', meirimers100Controller.getMisRespuestas);
-
-// ---- 100 Meirimers Dicen - Juego ----
-router.get('/api/100meirimers/preguntas/juego', meirimers100Controller.getPreguntasJuego);
-router.get('/api/100meirimers/pregunta/:id/resultados', meirimers100Controller.getPreguntaConResultados);
-router.post('/api/100meirimers/verificar', meirimers100Controller.verificarRespuesta);
-
-// ---- 100 Meirimers Dicen - Admin ----
+// ---- 100 Meirimers Dicen ----
+router.get('/api/100meirimers/preguntas', meirimers100Controller.getPreguntasJuego);
+router.post('/api/100meirimers/verificar', meirimers100Controller.verificarOrden);
 router.get('/api/100meirimers/admin/preguntas', meirimers100Controller.getAllPreguntas);
 router.post('/api/100meirimers/admin/preguntas', meirimers100Controller.crearPregunta);
 router.put('/api/100meirimers/admin/preguntas/:id', meirimers100Controller.actualizarPregunta);
 router.delete('/api/100meirimers/admin/preguntas/:id', meirimers100Controller.eliminarPregunta);
-router.get('/api/100meirimers/admin/preguntas/:id/respuestas', meirimers100Controller.getRespuestasPregunta);
 router.get('/api/100meirimers/admin/estadisticas', meirimers100Controller.getEstadisticas);
+router.post('/api/100meirimers/admin/inicializar', meirimers100Controller.inicializarDatos);
 
 export default router;

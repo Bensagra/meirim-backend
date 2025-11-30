@@ -2,216 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// Normalizar texto para comparación
-function normalizarTexto(texto) {
-  return texto
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
-    .replace(/[^\w\s]/g, "") // Quitar puntuación
-    .trim();
-}
-
-// ============ VOTACIÓN (Usuarios) ============
-
-// Obtener preguntas activas para votar
-export const getPreguntasParaVotar = async (req, res) => {
-  try {
-    const preguntas = await prisma.pregunta100.findMany({
-      where: {
-        activa: true,
-        bloqueada: false
-      },
-      orderBy: { orden: 'asc' },
-      select: {
-        id: true,
-        pregunta: true,
-        orden: true
-      }
-    });
-    res.json(preguntas);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener preguntas' });
-  }
-};
-
-// Responder una pregunta
-export const responderPregunta = async (req, res) => {
-  try {
-    const { preguntaId, respuesta, votante } = req.body;
-
-    if (!preguntaId || !respuesta || !votante) {
-      return res.status(400).json({ error: 'Faltan datos requeridos' });
-    }
-
-    // Verificar que la pregunta esté activa y no bloqueada
-    const pregunta = await prisma.pregunta100.findUnique({
-      where: { id: parseInt(preguntaId) }
-    });
-
-    if (!pregunta || !pregunta.activa || pregunta.bloqueada) {
-      return res.status(400).json({ error: 'Esta pregunta no está disponible para responder' });
-    }
-
-    const respuestaNormalizada = normalizarTexto(respuesta);
-
-    // Crear o actualizar respuesta
-    const respuestaDb = await prisma.respuesta100.upsert({
-      where: {
-        preguntaId_votante: {
-          preguntaId: parseInt(preguntaId),
-          votante: votante
-        }
-      },
-      update: {
-        respuesta: respuestaNormalizada
-      },
-      create: {
-        preguntaId: parseInt(preguntaId),
-        respuesta: respuestaNormalizada,
-        votante: votante
-      }
-    });
-
-    res.json({ success: true, respuesta: respuestaDb });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al guardar respuesta' });
-  }
-};
-
-// Obtener respuestas del votante
-export const getMisRespuestas = async (req, res) => {
-  try {
-    const { votante } = req.params;
-
-    const respuestas = await prisma.respuesta100.findMany({
-      where: { votante },
-      include: {
-        pregunta: {
-          select: {
-            id: true,
-            pregunta: true,
-            orden: true
-          }
-        }
-      },
-      orderBy: {
-        pregunta: {
-          orden: 'asc'
-        }
-      }
-    });
-
-    res.json(respuestas);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener respuestas' });
-  }
-};
-
 // ============ JUEGO ============
-
-// Obtener pregunta con resultados calculados
-export const getPreguntaConResultados = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const pregunta = await prisma.pregunta100.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        respuestas: true
-      }
-    });
-
-    if (!pregunta) {
-      return res.status(404).json({ error: 'Pregunta no encontrada' });
-    }
-
-    // Agrupar y contar respuestas
-    const conteo = {};
-    pregunta.respuestas.forEach(r => {
-      const resp = r.respuesta;
-      conteo[resp] = (conteo[resp] || 0) + 1;
-    });
-
-    // Calcular porcentajes
-    const totalRespuestas = pregunta.respuestas.length;
-    const resultados = Object.entries(conteo)
-      .map(([respuesta, cantidad]) => ({
-        respuesta,
-        cantidad,
-        porcentaje: totalRespuestas > 0 
-          ? Math.round((cantidad / totalRespuestas) * 100) 
-          : 0
-      }))
-      .sort((a, b) => b.cantidad - a.cantidad);
-
-    res.json({
-      id: pregunta.id,
-      pregunta: pregunta.pregunta,
-      totalRespuestas,
-      resultados
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener resultados' });
-  }
-};
-
-// Verificar respuesta del jugador
-export const verificarRespuesta = async (req, res) => {
-  try {
-    const { preguntaId, respuesta } = req.body;
-
-    if (!preguntaId || !respuesta) {
-      return res.status(400).json({ error: 'Faltan datos' });
-    }
-
-    const respuestaNormalizada = normalizarTexto(respuesta);
-
-    // Buscar si existe esta respuesta
-    const encontrada = await prisma.respuesta100.findFirst({
-      where: {
-        preguntaId: parseInt(preguntaId),
-        respuesta: respuestaNormalizada
-      }
-    });
-
-    if (encontrada) {
-      // Contar cuántas veces fue respondida
-      const cantidad = await prisma.respuesta100.count({
-        where: {
-          preguntaId: parseInt(preguntaId),
-          respuesta: respuestaNormalizada
-        }
-      });
-
-      // Calcular porcentaje
-      const total = await prisma.respuesta100.count({
-        where: { preguntaId: parseInt(preguntaId) }
-      });
-
-      const porcentaje = total > 0 ? Math.round((cantidad / total) * 100) : 0;
-
-      res.json({
-        correcta: true,
-        respuesta: respuestaNormalizada,
-        cantidad,
-        porcentaje
-      });
-    } else {
-      res.json({
-        correcta: false,
-        respuesta: respuestaNormalizada
-      });
-    }
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al verificar respuesta' });
-  }
-};
 
 // Listar preguntas para el juego
 export const getPreguntasJuego = async (req, res) => {
@@ -219,23 +10,81 @@ export const getPreguntasJuego = async (req, res) => {
     const preguntas = await prisma.pregunta100.findMany({
       where: {
         activa: true
-        // Removido el filtro de bloqueada para permitir jugar con cualquier pregunta activa
       },
       orderBy: { orden: 'asc' },
       include: {
-        _count: {
-          select: { respuestas: true }
+        opciones: {
+          orderBy: { posicion: 'asc' }
         }
       }
     });
 
-    // Filtrar solo las que tienen al menos 1 respuesta
-    const preguntasConRespuestas = preguntas.filter(p => p._count.respuestas > 0);
-
-    res.json(preguntasConRespuestas);
+    res.json(preguntas);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al obtener preguntas' });
+  }
+};
+
+// Verificar el orden de las opciones
+export const verificarOrden = async (req, res) => {
+  try {
+    const { preguntaId, ordenUsuario } = req.body;
+    // ordenUsuario es un array de IDs de opciones en el orden que el usuario propuso
+
+    if (!preguntaId || !Array.isArray(ordenUsuario)) {
+      return res.status(400).json({ error: 'Faltan datos o formato incorrecto' });
+    }
+
+    // Obtener la pregunta con sus opciones
+    const pregunta = await prisma.pregunta100.findUnique({
+      where: { id: parseInt(preguntaId) },
+      include: {
+        opciones: {
+          orderBy: { posicion: 'asc' }
+        }
+      }
+    });
+
+    if (!pregunta) {
+      return res.status(404).json({ error: 'Pregunta no encontrada' });
+    }
+
+    // Crear mapa de ID -> posición correcta
+    const posicionesCorrectas = {};
+    pregunta.opciones.forEach(opcion => {
+      posicionesCorrectas[opcion.id] = opcion.posicion;
+    });
+
+    // Verificar cada opción
+    const resultados = ordenUsuario.map((opcionId, index) => {
+      const posicionUsuario = index + 1; // Posición que le dio el usuario (1-indexed)
+      const posicionCorrecta = posicionesCorrectas[opcionId];
+      const correcto = posicionUsuario === posicionCorrecta;
+
+      return {
+        opcionId: opcionId,
+        posicionUsuario,
+        posicionCorrecta,
+        correcto
+      };
+    });
+
+    // Calcular puntaje
+    const correctas = resultados.filter(r => r.correcto).length;
+    const total = resultados.length;
+    const porcentaje = total > 0 ? Math.round((correctas / total) * 100) : 0;
+
+    res.json({
+      correctas,
+      total,
+      porcentaje,
+      resultados,
+      opciones: pregunta.opciones // Devolver las opciones completas
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al verificar orden' });
   }
 };
 
@@ -247,8 +96,8 @@ export const getAllPreguntas = async (req, res) => {
     const preguntas = await prisma.pregunta100.findMany({
       orderBy: { orden: 'asc' },
       include: {
-        _count: {
-          select: { respuestas: true }
+        opciones: {
+          orderBy: { posicion: 'asc' }
         }
       }
     });
@@ -260,13 +109,13 @@ export const getAllPreguntas = async (req, res) => {
   }
 };
 
-// Crear pregunta (admin)
+// Crear pregunta con opciones (admin)
 export const crearPregunta = async (req, res) => {
   try {
-    const { pregunta, orden, activa } = req.body;
+    const { pregunta, orden, activa, opciones } = req.body;
 
-    if (!pregunta) {
-      return res.status(400).json({ error: 'La pregunta es requerida' });
+    if (!pregunta || !opciones || !Array.isArray(opciones)) {
+      return res.status(400).json({ error: 'La pregunta y opciones son requeridas' });
     }
 
     const nueva = await prisma.pregunta100.create({
@@ -274,7 +123,16 @@ export const crearPregunta = async (req, res) => {
         pregunta,
         orden: orden || 0,
         activa: activa !== undefined ? activa : true,
-        bloqueada: false
+        opciones: {
+          create: opciones.map(op => ({
+            texto: op.texto,
+            posicion: op.posicion,
+            cantidad: op.cantidad
+          }))
+        }
+      },
+      include: {
+        opciones: true
       }
     });
 
@@ -289,15 +147,17 @@ export const crearPregunta = async (req, res) => {
 export const actualizarPregunta = async (req, res) => {
   try {
     const { id } = req.params;
-    const { pregunta, orden, activa, bloqueada } = req.body;
+    const { pregunta, orden, activa } = req.body;
 
     const actualizada = await prisma.pregunta100.update({
       where: { id: parseInt(id) },
       data: {
         ...(pregunta !== undefined && { pregunta }),
         ...(orden !== undefined && { orden }),
-        ...(activa !== undefined && { activa }),
-        ...(bloqueada !== undefined && { bloqueada })
+        ...(activa !== undefined && { activa })
+      },
+      include: {
+        opciones: true
       }
     });
 
@@ -324,44 +184,6 @@ export const eliminarPregunta = async (req, res) => {
   }
 };
 
-// Ver todas las respuestas de una pregunta (admin)
-export const getRespuestasPregunta = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const respuestas = await prisma.respuesta100.findMany({
-      where: { preguntaId: parseInt(id) },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    // Agrupar y contar
-    const conteo = {};
-    respuestas.forEach(r => {
-      const resp = r.respuesta;
-      conteo[resp] = (conteo[resp] || 0) + 1;
-    });
-
-    const agrupadas = Object.entries(conteo)
-      .map(([respuesta, cantidad]) => ({
-        respuesta,
-        cantidad,
-        porcentaje: respuestas.length > 0 
-          ? Math.round((cantidad / respuestas.length) * 100) 
-          : 0
-      }))
-      .sort((a, b) => b.cantidad - a.cantidad);
-
-    res.json({
-      total: respuestas.length,
-      respuestasAgrupadas: agrupadas,
-      respuestasIndividuales: respuestas
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener respuestas' });
-  }
-};
-
 // Estadísticas generales (admin)
 export const getEstadisticas = async (req, res) => {
   try {
@@ -369,26 +191,112 @@ export const getEstadisticas = async (req, res) => {
     const preguntasActivas = await prisma.pregunta100.count({
       where: { activa: true }
     });
-    const preguntasBloqueadas = await prisma.pregunta100.count({
-      where: { bloqueada: true }
-    });
-    const totalRespuestas = await prisma.respuesta100.count();
-
-    // Obtener votantes únicos
-    const respuestas = await prisma.respuesta100.findMany({
-      select: { votante: true },
-      distinct: ['votante']
-    });
 
     res.json({
       totalPreguntas,
-      preguntasActivas,
-      preguntasBloqueadas,
-      totalRespuestas,
-      votantesUnicos: respuestas.length
+      preguntasActivas
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al obtener estadísticas' });
+  }
+};
+
+// Inicializar datos con las preguntas del campamento
+export const inicializarDatos = async (req, res) => {
+  try {
+    const preguntasData = [
+      {
+        pregunta: "Juego favorito",
+        orden: 1,
+        opciones: [
+          { texto: "Juegos con pelota violentos", posicion: 1, cantidad: 40 },
+          { texto: "Gallito ciego", posicion: 2, cantidad: 30 },
+          { texto: "Dos perros por un hueso", posicion: 3, cantidad: 20 },
+          { texto: "I love London", posicion: 4, cantidad: 10 }
+        ]
+      },
+      {
+        pregunta: "Momento más esperado del CM",
+        orden: 2,
+        opciones: [
+          { texto: "Mesaza", posicion: 1, cantidad: 50 },
+          { texto: "Los juegos", posicion: 2, cantidad: 35 },
+          { texto: "Judinews", posicion: 3, cantidad: 15 }
+        ]
+      },
+      {
+        pregunta: "Mesaza favorita",
+        orden: 3,
+        opciones: [
+          { texto: "Cookies", posicion: 1, cantidad: 30 },
+          { texto: "Tiramisú", posicion: 2, cantidad: 25 },
+          { texto: "Brigadeiros", posicion: 3, cantidad: 20 },
+          { texto: "Masitas", posicion: 4, cantidad: 15 },
+          { texto: "Conitos de dulce de leche", posicion: 5, cantidad: 10 }
+        ]
+      },
+      {
+        pregunta: "Mejor CM",
+        orden: 4,
+        opciones: [
+          { texto: "Kickoff sushi", posicion: 1, cantidad: 35 },
+          { texto: "Payasos e infancia", posicion: 2, cantidad: 30 },
+          { texto: "Parents info night", posicion: 3, cantidad: 20 },
+          { texto: "Centro de entrenamiento", posicion: 4, cantidad: 15 }
+        ]
+      },
+      {
+        pregunta: "Puesto del board favorito",
+        orden: 5,
+        opciones: [
+          { texto: "Mazkirim", posicion: 1, cantidad: 35 },
+          { texto: "Godol & N'siah", posicion: 2, cantidad: 30 },
+          { texto: "Sganim", posicion: 3, cantidad: 20 },
+          { texto: "Morim", posicion: 4, cantidad: 15 }
+        ]
+      },
+      {
+        pregunta: "Evento regional favorito",
+        orden: 6,
+        opciones: [
+          { texto: "Israel Experience", posicion: 1, cantidad: 45 },
+          { texto: "LTD", posicion: 2, cantidad: 35 },
+          { texto: "BBYO Wrapped", posicion: 3, cantidad: 20 }
+        ]
+      },
+      {
+        pregunta: "Lo que más les gusta de BBYO",
+        orden: 7,
+        opciones: [
+          { texto: "Los Amigos", posicion: 1, cantidad: 40 },
+          { texto: "Los chapter meetings", posicion: 2, cantidad: 30 },
+          { texto: "El camp", posicion: 3, cantidad: 20 },
+          { texto: "IC", posicion: 4, cantidad: 10 }
+        ]
+      }
+    ];
+
+    for (const preguntaData of preguntasData) {
+      await prisma.pregunta100.create({
+        data: {
+          pregunta: preguntaData.pregunta,
+          orden: preguntaData.orden,
+          activa: true,
+          opciones: {
+            create: preguntaData.opciones
+          }
+        }
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Datos inicializados correctamente', 
+      preguntasCreadas: preguntasData.length 
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al inicializar datos' });
   }
 };
