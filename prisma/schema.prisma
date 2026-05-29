@@ -16,6 +16,13 @@ enum EstadoActividad {
   FUE_DADA_LA_PLANIFICACION         // Estado5: Fue dada la planificación
 }
 
+/// Resultado de un enfrentamiento de la Mesaza
+enum MesazaWinner {
+  A
+  B
+  TIE
+}
+
 /// Usuarios de la aplicación
 model User {
   id           Int             @id @default(autoincrement())
@@ -158,4 +165,34 @@ model Opcion100 {
   cantidad    Int          // Cantidad de "personas" que lo dijeron
   
   @@index([preguntaId])
+}
+
+/// Enfrentamientos de la Mesaza
+model MesazaMatch {
+  id           Int            @id @default(autoincrement())
+  title        String?
+  description  String?
+  date         DateTime
+  competitorA  String
+  competitorB  String
+  photoA       String?
+  photoB       String?
+  winner       MesazaWinner?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  photos       MesazaPhoto[]
+
+  @@index([date])
+}
+
+/// Fotos extra de cada enfrentamiento
+model MesazaPhoto {
+  id        Int         @id @default(autoincrement())
+  url       String
+  caption   String?
+  match     MesazaMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  matchId   Int
+  createdAt DateTime    @default(now())
+
+  @@index([matchId])
 }

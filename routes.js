@@ -4,6 +4,7 @@ import * as proposalControllers from "./controllers/proporsalsControllers.js";
 import * as userController from "./controllers/userController.js";
 import * as nominacionesController from "./controllers/nominacionesController.js";
 import * as meirimers100Controller from "./controllers/meirimers100Controller.js";
+import * as mesazaController from "./controllers/mesazaController.js";
 import { EstadoActividad, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -165,5 +166,12 @@ router.put('/100meirimers/admin/preguntas/:id', meirimers100Controller.actualiza
 router.delete('/100meirimers/admin/preguntas/:id', meirimers100Controller.eliminarPregunta);
 router.get('/100meirimers/admin/estadisticas', meirimers100Controller.getEstadisticas);
 router.post('/100meirimers/admin/inicializar', meirimers100Controller.inicializarDatos);
+
+// ---- Mesaza ----
+router.get('/mesaza', mesazaController.listMatches);
+router.get('/mesaza/next', mesazaController.getNextMatch);
+router.post('/mesaza', mesazaController.createMatch);
+router.patch('/mesaza/:id', mesazaController.updateMatch);
+router.delete('/mesaza/:id', mesazaController.deleteMatch);
 
 export default router;
