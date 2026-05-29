@@ -30,7 +30,11 @@ model User {
   surname     String
   dni          String          @unique
   email        String          @unique
+  photoUrl     String?
   actividades  ActivityUser[]  // relaciones a actividades
+
+  mesazaAsA    MesazaMatch[]    @relation("MesazaCompetitorA")
+  mesazaAsB    MesazaMatch[]    @relation("MesazaCompetitorB")
 
   disponibilidadHorarios DisponibilidadHorarios[]
 }
@@ -173,10 +177,10 @@ model MesazaMatch {
   title        String?
   description  String?
   date         DateTime
-  competitorA  String
-  competitorB  String
-  photoA       String?
-  photoB       String?
+  competitorA  User           @relation("MesazaCompetitorA", fields: [competitorAId], references: [id])
+  competitorAId Int
+  competitorB  User           @relation("MesazaCompetitorB", fields: [competitorBId], references: [id])
+  competitorBId Int
   winner       MesazaWinner?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt

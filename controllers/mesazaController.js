@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { getSupabaseBucket, getSupabaseClient } from "../lib/supabaseClient.js";
 
 const prisma = new PrismaClient();
 
@@ -25,7 +26,11 @@ export const listMatches = async (req, res) => {
   try {
     const items = await prisma.mesazaMatch.findMany({
       orderBy: { date: "desc" },
-      include: { photos: true }
+      include: {
+        photos: true,
+        competitorA: { select: { id: true, name: true, surname: true, dni: true, photoUrl: true } },
+        competitorB: { select: { id: true, name: true, surname: true, dni: true, photoUrl: true } }
+      }
     });
     res.json(items);
   } catch (e) {
@@ -40,7 +45,11 @@ export const getNextMatch = async (req, res) => {
     const next = await prisma.mesazaMatch.findFirst({
       where: { date: { gte: now } },
       orderBy: { date: "asc" },
-      include: { photos: true }
+      include: {
+        photos: true,
+        competitorA: { select: { id: true, name: true, surname: true, dni: true, photoUrl: true } },
+        competitorB: { select: { id: true, name: true, surname: true, dni: true, photoUrl: true } }
+      }
     });
     res.json(next || null);
   } catch (e) {
@@ -55,15 +64,16 @@ export const createMatch = async (req, res) => {
       title,
       description,
       date,
-      competitorA,
-      competitorB,
-      photoA,
-      photoB,
+      competitorAId,
+      competitorBId,
       winner,
       photos = []
     } = req.body || {};
 
-    if (!competitorA || !competitorB) {
+    const compAId = parseInt(competitorAId, 10);
+    const compBId = parseInt(competitorBId, 10);
+
+    if (!compAId || !compBId) {
       return res.status(400).send("Faltan competidores");
     }
 
@@ -73,20 +83,25 @@ export const createMatch = async (req, res) => {
     }
 
     const photosData = normalizePhotos(photos);
+    if (winner && !['A', 'B', 'TIE'].includes(winner)) {
+      return res.status(400).send('Ganador invalido');
+    }
 
     const created = await prisma.mesazaMatch.create({
       data: {
         title: title?.trim() || null,
         description: description?.trim() || null,
         date: parsedDate,
-        competitorA: competitorA.trim(),
-        competitorB: competitorB.trim(),
-        photoA: photoA?.trim() || null,
-        photoB: photoB?.trim() || null,
+        competitorA: { connect: { id: compAId } },
+        competitorB: { connect: { id: compBId } },
         winner: winner || null,
         photos: photosData.length ? { create: photosData } : undefined
       },
-      include: { photos: true }
+      include: {
+        photos: true,
+        competitorA: { select: { id: true, name: true, surname: true, dni: true, photoUrl: true } },
+        competitorB: { select: { id: true, name: true, surname: true, dni: true, photoUrl: true } }
+      }
     });
 
     res.status(201).json(created);
@@ -105,10 +120,8 @@ export const updateMatch = async (req, res) => {
       title,
       description,
       date,
-      competitorA,
-      competitorB,
-      photoA,
-      photoB,
+      competitorAId,
+      competitorBId,
       winner,
       photos
     } = req.body || {};
@@ -121,11 +134,22 @@ export const updateMatch = async (req, res) => {
       if (!parsed) return res.status(400).send("Fecha invalida");
       data.date = parsed;
     }
-    if (competitorA !== undefined) data.competitorA = competitorA.trim();
-    if (competitorB !== undefined) data.competitorB = competitorB.trim();
-    if (photoA !== undefined) data.photoA = photoA?.trim() || null;
-    if (photoB !== undefined) data.photoB = photoB?.trim() || null;
-    if (winner !== undefined) data.winner = winner || null;
+    if (competitorAId !== undefined) {
+      const compAId = parseInt(competitorAId, 10);
+      if (!compAId) return res.status(400).send("Competidor A invalido");
+      data.competitorA = { connect: { id: compAId } };
+    }
+    if (competitorBId !== undefined) {
+      const compBId = parseInt(competitorBId, 10);
+      if (!compBId) return res.status(400).send("Competidor B invalido");
+      data.competitorB = { connect: { id: compBId } };
+    }
+    if (winner !== undefined) {
+      if (winner && !['A', 'B', 'TIE'].includes(winner)) {
+        return res.status(400).send('Ganador invalido');
+      }
+      data.winner = winner || null;
+    }
 
     const photosData = Array.isArray(photos) ? normalizePhotos(photos) : null;
 
@@ -147,7 +171,11 @@ export const updateMatch = async (req, res) => {
 
       return tx.mesazaMatch.findUnique({
         where: { id },
-        include: { photos: true }
+        include: {
+          photos: true,
+          competitorA: { select: { id: true, name: true, surname: true, dni: true, photoUrl: true } },
+          competitorB: { select: { id: true, name: true, surname: true, dni: true, photoUrl: true } }
+        }
       });
     });
 
@@ -170,3 +198,80 @@ export const deleteMatch = async (req, res) => {
     res.status(400).send("No se pudo borrar el enfrentamiento");
   }
 };
+
+export const createUploadUrl = async (req, res) => {
+  try {
+    const { folder, fileName } = req.body || {};
+    if (!fileName) return res.status(400).send("Falta fileName");
+
+    const safeFolder = folder === "users" || folder === "matches" ? folder : null;
+    if (!safeFolder) return res.status(400).send("Carpeta invalida");
+
+    const safeName = sanitizeFileName(fileName);
+    const stamp = Date.now();
+    const path = `mesaza/${safeFolder}/${stamp}_${safeName}`;
+
+    const supabase = getSupabaseClient();
+    const bucket = getSupabaseBucket();
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUploadUrl(path);
+
+    if (error) {
+      console.error(error);
+      return res.status(500).send("No se pudo generar URL de subida");
+    }
+
+    const { data: publicData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(path);
+
+    res.json({
+      signedUrl: data.signedUrl,
+      path,
+      publicUrl: publicData?.publicUrl || null
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("No se pudo generar URL de subida");
+  }
+};
+
+export const addMatchPhotos = async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (Number.isNaN(id)) return res.status(400).send("ID invalido");
+
+  try {
+    const { photos = [] } = req.body || {};
+    const photosData = normalizePhotos(photos);
+    if (!photosData.length) return res.status(400).send("No hay fotos");
+
+    await prisma.mesazaPhoto.createMany({
+      data: photosData.map((p) => ({
+        matchId: id,
+        url: p.url,
+        caption: p.caption || null
+      }))
+    });
+
+    const updated = await prisma.mesazaMatch.findUnique({
+      where: { id },
+      include: {
+        photos: true,
+        competitorA: { select: { id: true, name: true, surname: true, dni: true, photoUrl: true } },
+        competitorB: { select: { id: true, name: true, surname: true, dni: true, photoUrl: true } }
+      }
+    });
+    res.json(updated);
+  } catch (e) {
+    console.error(e);
+    res.status(400).send("No se pudieron agregar las fotos");
+  }
+};
+
+function sanitizeFileName(fileName) {
+  const raw = String(fileName || "");
+  const base = raw.split("/").pop() || "foto";
+  return base.replace(/[^a-zA-Z0-9._-]+/g, "_");
+}

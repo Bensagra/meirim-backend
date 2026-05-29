@@ -13,6 +13,8 @@ const router = Router();
 // Lista todos o por mes:  GET /api/activities-status?year=2025&month=7
 router.post("/user", userController.createUser); // Crear usuario
 router.get("/user/:dni", userController.getUser); // Obtener usuario por DNI
+router.get("/users", userController.listUsers); // Listar usuarios
+router.patch("/users/:id/photo", userController.updateUserPhoto); // Actualizar foto de usuario
 router.get("/propuestas", proposalControllers.listTematicas); // Listar propuestas
 router.post("/propuestas", proposalControllers.createTematica); // Crear propuesta
 router.put("/actividades", activityControllers.createActivity); // Crear actividad
@@ -170,6 +172,8 @@ router.post('/100meirimers/admin/inicializar', meirimers100Controller.inicializa
 // ---- Mesaza ----
 router.get('/mesaza', mesazaController.listMatches);
 router.get('/mesaza/next', mesazaController.getNextMatch);
+router.post('/mesaza/upload-url', mesazaController.createUploadUrl);
+router.post('/mesaza/:id/photos', mesazaController.addMatchPhotos);
 router.post('/mesaza', mesazaController.createMatch);
 router.patch('/mesaza/:id', mesazaController.updateMatch);
 router.delete('/mesaza/:id', mesazaController.deleteMatch);
