@@ -213,7 +213,9 @@ model GalleryPhoto {
   scope     GalleryScope
   url       String
   caption   String?
+  displayOrder Int       @default(0)
   createdAt DateTime     @default(now())
 
+  @@index([scope, displayOrder])
   @@index([scope, createdAt])
 }

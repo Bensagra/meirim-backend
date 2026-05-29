@@ -38,7 +38,7 @@ export const listPhotos = async (req, res) => {
   try {
     const photos = await prisma.galleryPhoto.findMany({
       where: { scope },
-      orderBy: { createdAt: "desc" }
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }]
     });
     res.json(photos);
   } catch (e) {
@@ -93,21 +93,59 @@ export const addPhotos = async (req, res) => {
     const photos = normalizePhotos(req.body?.photos);
     if (!photos.length) return res.status(400).send("No hay fotos");
 
+    const last = await prisma.galleryPhoto.findFirst({
+      where: { scope },
+      orderBy: { displayOrder: "desc" },
+      select: { displayOrder: true }
+    });
+    const nextOrder = (last?.displayOrder ?? -1) + 1;
+
     await prisma.galleryPhoto.createMany({
-      data: photos.map((p) => ({
+      data: photos.map((p, index) => ({
         scope,
         url: p.url,
-        caption: p.caption || null
+        caption: p.caption || null,
+        displayOrder: nextOrder + index
       }))
     });
 
     const updated = await prisma.galleryPhoto.findMany({
       where: { scope },
-      orderBy: { createdAt: "desc" }
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }]
     });
     res.status(201).json(updated);
   } catch (e) {
     console.error(e);
     res.status(400).send("No se pudieron guardar las fotos");
+  }
+};
+
+export const reorderPhotos = async (req, res) => {
+  const scope = parseScope(req.params.scope);
+  if (!scope) return res.status(400).send("Galeria invalida");
+
+  try {
+    const ids = Array.isArray(req.body?.ids)
+      ? req.body.ids.map((id) => parseInt(id, 10)).filter((id) => !Number.isNaN(id))
+      : [];
+    if (!ids.length) return res.status(400).send("No hay fotos para ordenar");
+
+    await prisma.$transaction(
+      ids.map((id, index) => (
+        prisma.galleryPhoto.updateMany({
+          where: { id, scope },
+          data: { displayOrder: index }
+        })
+      ))
+    );
+
+    const updated = await prisma.galleryPhoto.findMany({
+      where: { scope },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }]
+    });
+    res.json(updated);
+  } catch (e) {
+    console.error(e);
+    res.status(400).send("No se pudo guardar el orden");
   }
 };

@@ -183,5 +183,6 @@ router.delete('/mesaza/:id', mesazaController.deleteMatch);
 router.get('/galleries/:scope/photos', galleryController.listPhotos);
 router.post('/galleries/:scope/upload-url', galleryController.createUploadUrl);
 router.post('/galleries/:scope/photos', galleryController.addPhotos);
+router.patch('/galleries/:scope/photos/order', galleryController.reorderPhotos);
 
 export default router;
