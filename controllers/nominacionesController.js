@@ -23,6 +23,42 @@ export const getCategorias = async (req, res) => {
   }
 };
 
+// Crear un campista
+export const createCampista = async (req, res) => {
+  try {
+    const nombre = (req.body?.nombre || '').trim();
+    if (!nombre) return res.status(400).json({ error: 'Falta el nombre' });
+    const campista = await prisma.campista.upsert({
+      where: { nombre },
+      update: {},
+      create: { nombre }
+    });
+    res.json(campista);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al crear campista' });
+  }
+};
+
+// Crear una categoría
+export const createCategoria = async (req, res) => {
+  try {
+    const nombre = (req.body?.nombre || '').trim();
+    const descripcion = (req.body?.descripcion || '').trim() || null;
+    if (!nombre) return res.status(400).json({ error: 'Falta el nombre' });
+    const count = await prisma.categoriaNominacion.count();
+    const categoria = await prisma.categoriaNominacion.upsert({
+      where: { nombre },
+      update: { descripcion },
+      create: { nombre, descripcion, orden: count + 1, activa: true }
+    });
+    res.json(categoria);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al crear categoría' });
+  }
+};
+
 // Obtener todos los campistas
 export const getCampistas = async (req, res) => {
   try {

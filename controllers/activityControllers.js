@@ -40,21 +40,29 @@ export const patchActivity = async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { estado, notas } = req.body;
   let nuevoEstado;
-  if (estado) {
-    nuevoEstado = EstadoActividad.FUE_PLANIFICADA;
+
+  // Si llega un estado válido del enum, respetarlo tal cual (lo manda el panel admin).
+  if (estado && Object.values(EstadoActividad).includes(estado)) {
+    nuevoEstado = estado;
   } else {
+    // Si no, recalcular según la cantidad de participantes.
     const totalParticipants = await prisma.activityUser.count({
       where: { activityId: id },
     });
-     nuevoEstado =
+    nuevoEstado =
       totalParticipants >= 3
         ? EstadoActividad.YA_HAY_GENTE_PERO_NO_SE_PLANIFICO
-        : EstadoActividad.HAY_GENTE_PERO_NO_NECESARIA;
+        : totalParticipants > 0
+          ? EstadoActividad.HAY_GENTE_PERO_NO_NECESARIA
+          : EstadoActividad.NO_HAY_NADIE;
   }
+
   try {
+    const data = { estado: nuevoEstado };
+    if (notas !== undefined) data.notas = notas;
     const updated = await prisma.activity.update({
       where: { id },
-      data: { estado: nuevoEstado, notas }
+      data
     });
     res.status(200).json(updated);
   } catch (error) {

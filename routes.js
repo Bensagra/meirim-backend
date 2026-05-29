@@ -94,7 +94,6 @@ router.post('/activities', async (req, res) => {
     res.status(400).send('No se pudo crear la actividad');
   }
 });
-router.patch('/actividades/:id', activityControllers.patchActivity);
 
 // ---- Temáticas ----
 router.get('/tematicas', async (req, res) => {
@@ -149,7 +148,9 @@ router.post('/notify', async (req, res) => {
 
 // ---- Nominaciones ----
 router.get('/nominaciones/categorias', nominacionesController.getCategorias);
+router.post('/nominaciones/categorias', nominacionesController.createCategoria);
 router.get('/nominaciones/campistas', nominacionesController.getCampistas);
+router.post('/nominaciones/campistas', nominacionesController.createCampista);
 router.post('/nominaciones/votar', nominacionesController.votar);
 router.get('/nominaciones/votos/:votante', nominacionesController.getVotosUsuario);
 router.get('/nominaciones/resultados', nominacionesController.getResultados);

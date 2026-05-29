@@ -277,6 +277,10 @@ export const inicializarDatos = async (req, res) => {
       }
     ];
 
+    // Limpiar lo existente para no duplicar (las opciones se borran en cascada).
+    await prisma.opcion100.deleteMany({});
+    await prisma.pregunta100.deleteMany({});
+
     for (const preguntaData of preguntasData) {
       await prisma.pregunta100.create({
         data: {
