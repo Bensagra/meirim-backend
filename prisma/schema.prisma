@@ -23,6 +23,12 @@ enum MesazaWinner {
   TIE
 }
 
+/// Galerías públicas del sitio
+enum GalleryScope {
+  HOME
+  MESAZA
+}
+
 /// Usuarios de la aplicación
 model User {
   id           Int             @id @default(autoincrement())
@@ -199,4 +205,15 @@ model MesazaPhoto {
   createdAt DateTime    @default(now())
 
   @@index([matchId])
+}
+
+/// Fotos sueltas para galerías públicas
+model GalleryPhoto {
+  id        Int          @id @default(autoincrement())
+  scope     GalleryScope
+  url       String
+  caption   String?
+  createdAt DateTime     @default(now())
+
+  @@index([scope, createdAt])
 }

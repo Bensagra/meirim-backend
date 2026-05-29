@@ -5,6 +5,7 @@ import * as userController from "./controllers/userController.js";
 import * as nominacionesController from "./controllers/nominacionesController.js";
 import * as meirimers100Controller from "./controllers/meirimers100Controller.js";
 import * as mesazaController from "./controllers/mesazaController.js";
+import * as galleryController from "./controllers/galleryController.js";
 import { EstadoActividad, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -177,5 +178,10 @@ router.post('/mesaza/:id/photos', mesazaController.addMatchPhotos);
 router.post('/mesaza', mesazaController.createMatch);
 router.patch('/mesaza/:id', mesazaController.updateMatch);
 router.delete('/mesaza/:id', mesazaController.deleteMatch);
+
+// ---- Galerías ----
+router.get('/galleries/:scope/photos', galleryController.listPhotos);
+router.post('/galleries/:scope/upload-url', galleryController.createUploadUrl);
+router.post('/galleries/:scope/photos', galleryController.addPhotos);
 
 export default router;
