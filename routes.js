@@ -9,7 +9,8 @@ import * as mesazaController from "./controllers/mesazaController.js";
 import * as galleryController from "./controllers/galleryController.js";
 import * as noticiasController from "./controllers/noticiasController.js";
 import * as productosController from "./controllers/productosController.js";
-import { requireAuth, requireRole } from "./lib/auth.js";
+import * as pushController from "./controllers/pushController.js";
+import { requireAuth, requireRole, optionalAuth } from "./lib/auth.js";
 import { EstadoActividad, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -47,6 +48,7 @@ router.put("/actividades", requireRole("ADMIN_ACTIVIDADES"), activityControllers
 router.get("/actividades", activityControllers.listActivities); // listar (público)
 router.put("/actividades/:id", requireAuth, activityControllers.updateActivity); // planificar (miembro)
 router.patch("/actividades/:id", requireRole("ADMIN_ACTIVIDADES"), activityControllers.patchActivity); // estado/notas (admin)
+router.post("/actividades/:id/asistencia", requireAuth, activityControllers.setAsistencia); // RSVP del miembro
 
 router.get('/activities/upcoming', async (req, res) => {
   try {
@@ -227,5 +229,10 @@ router.post('/productos/upload-url', requireRole("ADMIN_ACTIVIDADES"), productos
 router.post('/productos', requireRole("ADMIN_ACTIVIDADES"), productosController.createProducto);
 router.patch('/productos/:id', requireRole("ADMIN_ACTIVIDADES"), productosController.updateProducto);
 router.delete('/productos/:id', requireRole("ADMIN_ACTIVIDADES"), productosController.deleteProducto);
+
+// ---- Notificaciones push (Web Push, sin websockets) ----
+router.get('/push/public-key', pushController.publicKey); // público
+router.post('/push/subscribe', optionalAuth, pushController.subscribe); // anónimo o logueado
+router.post('/push/unsubscribe', pushController.unsubscribe);
 
 export default router;

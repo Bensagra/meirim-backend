@@ -28,6 +28,9 @@ export const listActivities = async (req, res) => {
         },
         tematicas: {
           include: { tematica: true }
+        },
+        asistencias: {
+          include: { user: { select: { id: true, name: true, surname: true, nickname: true, photoUrl: true } } }
         }
       }
     });
@@ -36,6 +39,33 @@ export const listActivities = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 }
+
+// RSVP: el miembro autenticado confirma su asistencia (VOY / TAL_VEZ / NO_VOY).
+const ESTADOS_ASISTENCIA = ["VOY", "TAL_VEZ", "NO_VOY"];
+export const setAsistencia = async (req, res) => {
+  const activityId = parseInt(req.params.id, 10);
+  if (Number.isNaN(activityId)) return res.status(400).json({ error: "Actividad inválida" });
+
+  const estado = String(req.body?.estado || "").toUpperCase();
+  if (!ESTADOS_ASISTENCIA.includes(estado)) {
+    return res.status(400).json({ error: "Estado inválido" });
+  }
+
+  try {
+    const activity = await prisma.activity.findUnique({ where: { id: activityId } });
+    if (!activity) return res.status(404).json({ error: "Actividad no encontrada" });
+
+    const asistencia = await prisma.asistencia.upsert({
+      where: { activityId_userId: { activityId, userId: req.user.id } },
+      update: { estado },
+      create: { activityId, userId: req.user.id, estado }
+    });
+    res.status(200).json(asistencia);
+  } catch (error) {
+    console.error("Error en setAsistencia:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
 export const patchActivity = async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { estado, notas } = req.body;

@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { getSupabaseBucket, getSupabaseClient } from "../lib/supabaseClient.js";
+import { notifyAll } from "../lib/push.js";
 
 const prisma = new PrismaClient();
 
@@ -77,6 +78,17 @@ export const createNoticia = async (req, res) => {
     const noticia = await prisma.noticia.create({
       data: { titulo, cuerpo, imageUrl, pinned }
     });
+
+    // Aviso push a todo el chapter (best-effort; no bloquea si push está apagado).
+    try {
+      await notifyAll({
+        title: `📰 ${titulo}`,
+        body: cuerpo ? cuerpo.slice(0, 120) : "Nueva noticia del chapter",
+        url: "/noticias.html",
+        tag: "noticia"
+      });
+    } catch { /* noop */ }
+
     res.status(201).json(noticia);
   } catch (e) {
     console.error(e);

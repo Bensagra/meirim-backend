@@ -61,6 +61,7 @@ model User {
   mesazaAsB    MesazaMatch[]    @relation("MesazaCompetitorB")
 
   disponibilidadHorarios DisponibilidadHorarios[]
+  asistencias  Asistencia[]
 }
 
 /// Temáticas publicadas anónimamente
@@ -83,6 +84,7 @@ model Activity {
   updatedAt      DateTime              @updatedAt
   notas          String?               // Notas opcionales sobre la actividad
   blocked       Boolean               @default(false)
+  asistencias    Asistencia[]          // confirmaciones de asistencia (RSVP)
 }
 
 /// Tabla de unión para asociar usuarios a una actividad
@@ -249,6 +251,40 @@ model Noticia {
   updatedAt DateTime @updatedAt
 
   @@index([pinned, createdAt])
+}
+
+/// Suscripción a notificaciones push (Web Push). No usa websockets.
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userId    Int?     // opcional: si el dispositivo está logueado
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// Respuesta de asistencia (RSVP) de un miembro a una actividad.
+enum EstadoAsistencia {
+  VOY
+  TAL_VEZ
+  NO_VOY
+}
+
+/// Confirmación de asistencia de un miembro a una actividad.
+model Asistencia {
+  id         Int              @id @default(autoincrement())
+  activity   Activity         @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  activityId Int
+  user       User             @relation(fields: [userId], references: [id])
+  userId     Int
+  estado     EstadoAsistencia
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@unique([activityId, userId])
+  @@index([activityId])
 }
 
 /// Productos de la Tienda Meiru (vidriera: se muestran, no se venden online).
