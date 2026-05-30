@@ -275,3 +275,68 @@ function sanitizeFileName(fileName) {
   const base = raw.split("/").pop() || "foto";
   return base.replace(/[^a-zA-Z0-9._-]+/g, "_");
 }
+
+const PUBLIC_USER = { id: true, name: true, surname: true, dni: true, photoUrl: true };
+
+/**
+ * Ranking histórico de la Mesaza, calculado sobre los enfrentamientos que ya
+ * tienen ganador cargado. No usa tablas nuevas. Devuelve, por competidor:
+ * victorias, derrotas, empates, jugados, % de victorias y racha de wins actual.
+ */
+export const getRanking = async (_req, res) => {
+  try {
+    const matches = await prisma.mesazaMatch.findMany({
+      where: { winner: { not: null } },
+      orderBy: { date: "asc" }, // cronológico: la racha se cuenta desde el final
+      include: { competitorA: { select: PUBLIC_USER }, competitorB: { select: PUBLIC_USER } }
+    });
+
+    const stats = new Map();
+    const ensure = (u) => {
+      if (!u) return null;
+      if (!stats.has(u.id)) {
+        stats.set(u.id, { user: u, wins: 0, losses: 0, ties: 0, played: 0, history: [] });
+      } else {
+        stats.get(u.id).user = u;
+      }
+      return stats.get(u.id);
+    };
+
+    for (const m of matches) {
+      const a = ensure(m.competitorA);
+      const b = ensure(m.competitorB);
+      if (!a || !b) continue;
+      a.played++; b.played++;
+      if (m.winner === "A") { a.wins++; b.losses++; a.history.push("W"); b.history.push("L"); }
+      else if (m.winner === "B") { b.wins++; a.losses++; b.history.push("W"); a.history.push("L"); }
+      else { a.ties++; b.ties++; a.history.push("T"); b.history.push("T"); }
+    }
+
+    const ranking = [...stats.values()].map((s) => {
+      let streak = 0;
+      for (let i = s.history.length - 1; i >= 0 && s.history[i] === "W"; i--) streak++;
+      const winRate = s.played ? Math.round((s.wins / s.played) * 100) : 0;
+      return {
+        user: s.user,
+        wins: s.wins,
+        losses: s.losses,
+        ties: s.ties,
+        played: s.played,
+        winRate,
+        streak
+      };
+    });
+
+    ranking.sort((x, y) =>
+      y.wins - x.wins ||
+      y.winRate - x.winRate ||
+      x.losses - y.losses ||
+      `${x.user.name || ""} ${x.user.surname || ""}`.localeCompare(`${y.user.name || ""} ${y.user.surname || ""}`)
+    );
+
+    res.json(ranking);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("No se pudo calcular el ranking");
+  }
+};

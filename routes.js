@@ -7,6 +7,8 @@ import * as nominacionesController from "./controllers/nominacionesController.js
 import * as meirimers100Controller from "./controllers/meirimers100Controller.js";
 import * as mesazaController from "./controllers/mesazaController.js";
 import * as galleryController from "./controllers/galleryController.js";
+import * as noticiasController from "./controllers/noticiasController.js";
+import * as productosController from "./controllers/productosController.js";
 import { requireAuth, requireRole } from "./lib/auth.js";
 import { EstadoActividad, PrismaClient } from "@prisma/client";
 
@@ -173,15 +175,18 @@ router.post('/notify', async (req, res) => {
   }
 });
 
-// ---- Nominaciones ----
-router.get('/nominaciones/categorias', nominacionesController.getCategorias);
-router.post('/nominaciones/categorias', requireRole("ADMIN_ACTIVIDADES"), nominacionesController.createCategoria);
-router.get('/nominaciones/campistas', nominacionesController.getCampistas);
-router.post('/nominaciones/campistas', requireRole("ADMIN_ACTIVIDADES"), nominacionesController.createCampista);
-router.post('/nominaciones/votar', nominacionesController.votar);
-router.get('/nominaciones/votos/:votante', nominacionesController.getVotosUsuario);
-router.get('/nominaciones/resultados', nominacionesController.getResultados);
-router.post('/nominaciones/inicializar', requireRole("ADMIN_ACTIVIDADES"), nominacionesController.inicializarDatos);
+// ---- Nominaciones (DESACTIVADO) ----
+// Las rutas de Nominaciones quedaron deshabilitadas a pedido del chapter.
+// Se conservan el controller (nominacionesController.js) y las tablas en la DB
+// por si se quiere reactivar; basta con descomentar este bloque.
+// router.get('/nominaciones/categorias', nominacionesController.getCategorias);
+// router.post('/nominaciones/categorias', requireRole("ADMIN_ACTIVIDADES"), nominacionesController.createCategoria);
+// router.get('/nominaciones/campistas', nominacionesController.getCampistas);
+// router.post('/nominaciones/campistas', requireRole("ADMIN_ACTIVIDADES"), nominacionesController.createCampista);
+// router.post('/nominaciones/votar', nominacionesController.votar);
+// router.get('/nominaciones/votos/:votante', nominacionesController.getVotosUsuario);
+// router.get('/nominaciones/resultados', nominacionesController.getResultados);
+// router.post('/nominaciones/inicializar', requireRole("ADMIN_ACTIVIDADES"), nominacionesController.inicializarDatos);
 
 // ---- 100 Meirimers Dicen ----
 router.get('/100meirimers/preguntas', meirimers100Controller.getPreguntasJuego);
@@ -196,6 +201,7 @@ router.post('/100meirimers/admin/inicializar', requireRole("ADMIN_ACTIVIDADES"),
 // ---- Mesaza ----
 router.get('/mesaza', mesazaController.listMatches);
 router.get('/mesaza/next', mesazaController.getNextMatch);
+router.get('/mesaza/ranking', mesazaController.getRanking); // público: tabla histórica
 router.post('/mesaza/upload-url', requireRole("ADMIN_ACTIVIDADES"), mesazaController.createUploadUrl);
 router.post('/mesaza/:id/photos', requireRole("ADMIN_ACTIVIDADES"), mesazaController.addMatchPhotos);
 router.post('/mesaza', requireRole("ADMIN_ACTIVIDADES"), mesazaController.createMatch);
@@ -207,5 +213,19 @@ router.get('/galleries/:scope/photos', galleryController.listPhotos);
 router.post('/galleries/:scope/upload-url', requireRole("EDITOR_FOTOS", "ADMIN_ACTIVIDADES"), galleryController.createUploadUrl);
 router.post('/galleries/:scope/photos', requireRole("EDITOR_FOTOS", "ADMIN_ACTIVIDADES"), galleryController.addPhotos);
 router.patch('/galleries/:scope/photos/order', requireRole("EDITOR_FOTOS", "ADMIN_ACTIVIDADES"), galleryController.reorderPhotos);
+
+// ---- Noticias del chapter ----
+router.get('/noticias', noticiasController.listNoticias); // público
+router.post('/noticias/upload-url', requireRole("EDITOR_FOTOS", "ADMIN_ACTIVIDADES"), noticiasController.createUploadUrl);
+router.post('/noticias', requireRole("EDITOR_FOTOS", "ADMIN_ACTIVIDADES"), noticiasController.createNoticia);
+router.patch('/noticias/:id', requireRole("EDITOR_FOTOS", "ADMIN_ACTIVIDADES"), noticiasController.updateNoticia);
+router.delete('/noticias/:id', requireRole("EDITOR_FOTOS", "ADMIN_ACTIVIDADES"), noticiasController.deleteNoticia);
+
+// ---- Tienda Meiru (vidriera) ----
+router.get('/productos', productosController.listProductos); // público (solo activos)
+router.post('/productos/upload-url', requireRole("ADMIN_ACTIVIDADES"), productosController.createUploadUrl);
+router.post('/productos', requireRole("ADMIN_ACTIVIDADES"), productosController.createProducto);
+router.patch('/productos/:id', requireRole("ADMIN_ACTIVIDADES"), productosController.updateProducto);
+router.delete('/productos/:id', requireRole("ADMIN_ACTIVIDADES"), productosController.deleteProducto);
 
 export default router;

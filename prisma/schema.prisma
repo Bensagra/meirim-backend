@@ -237,3 +237,31 @@ model GalleryPhoto {
   @@index([scope, displayOrder])
   @@index([scope, createdAt])
 }
+
+/// Noticias del chapter (flyers, textos e indicaciones). Las sube EDITOR_FOTOS.
+model Noticia {
+  id        Int      @id @default(autoincrement())
+  titulo    String
+  cuerpo    String?  // texto / indicaciones (opcional si es solo un flyer)
+  imageUrl  String?  // flyer subido a Supabase Storage (opcional)
+  pinned    Boolean  @default(false) // destacada: va arriba de todo
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pinned, createdAt])
+}
+
+/// Productos de la Tienda Meiru (vidriera: se muestran, no se venden online).
+model Producto {
+  id           Int      @id @default(autoincrement())
+  nombre       String
+  descripcion  String?
+  precio       String?  // texto libre: "$8.000", "Consultar", etc.
+  imageUrl     String?  // foto del producto (Supabase Storage)
+  talles       String?  // texto libre: "S, M, L, XL"
+  displayOrder Int      @default(0)
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([activo, displayOrder])
+}
