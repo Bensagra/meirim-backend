@@ -72,10 +72,15 @@ export const patchActivity = async (req, res) => {
 
 export const updateActivity = async (req, res) => {
   const activityId = parseInt(req.params.id, 10);
-  // destructuramos acorde al front: participants → array de DNIs, topics → array de labels
-  const { participants: dnis = [], topics = [] } = req.body;
+  // El planificador es el usuario autenticado (req.user, vía requireAuth).
+  // topics → array de labels. Un SUPER_ADMIN puede además sumar otros DNIs.
+  const { topics = [], participants: extraDnis = [] } = req.body;
 
   try {
+    const activity = await prisma.activity.findUnique({ where: { id: activityId } });
+    if (!activity) return res.status(404).json({ error: "Actividad no encontrada" });
+    if (activity.blocked) return res.status(403).json({ error: "Este día está bloqueado para planificación." });
+
     // 1) Find or create cada temática por su texto
     const tematicas = await Promise.all(
       topics.map(async (label) => {
@@ -91,26 +96,22 @@ export const updateActivity = async (req, res) => {
       })
     );
 
-    // 2) Cargar usuarios existentes por DNI
-    const users = await prisma.user.findMany({
-      where: { dni: { in: dnis.map(String) } },
-    });
-    if (users.length !== dnis.length) {
-      const encontrados = users.map((u) => u.dni);
-      const faltantes = dnis.filter((d) => !encontrados.includes(d.toString()));
-      return res
-        .status(400)
-        .json({ error: `Usuarios no encontrados: ${faltantes.join(', ')}` });
+    // 2) Resolver participantes: siempre el usuario autenticado. Un SUPER_ADMIN
+    //    puede sumar otros por DNI.
+    const userIds = new Set([req.user.id]);
+    if (req.user.role === "SUPER_ADMIN" && Array.isArray(extraDnis) && extraDnis.length) {
+      const extra = await prisma.user.findMany({
+        where: { dni: { in: extraDnis.map(String) } },
+        select: { id: true }
+      });
+      extra.forEach((u) => userIds.add(u.id));
     }
 
     // 3) En transacción, agregamos sólo las nuevas relaciones (skipDuplicates)
     await prisma.$transaction([
       // vincular usuarios (sólo crea los que falten)
       prisma.activityUser.createMany({
-        data: users.map((u) => ({
-          activityId,
-          userId: u.id,
-        })),
+        data: [...userIds].map((userId) => ({ activityId, userId })),
         skipDuplicates: true,
       }),
       // vincular temáticas (idem)

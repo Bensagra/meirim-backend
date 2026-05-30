@@ -29,14 +29,32 @@ enum GalleryScope {
   MESAZA
 }
 
+/// Roles / estatus de acceso de cada usuario
+enum Role {
+  MIEMBRO            // Acceso base: planificar, votar, jugar, ver su perfil
+  EDITOR_FOTOS       // Puede subir y ordenar las galerías
+  ADMIN_ACTIVIDADES  // Gestiona actividades, temáticas, mesaza, nominaciones, 100M
+  SUPER_ADMIN        // Acceso total + gestión de usuarios y roles
+}
+
 /// Usuarios de la aplicación
 model User {
   id           Int             @id @default(autoincrement())
-  name       String
-  surname     String
+  name         String
+  surname      String
   dni          String          @unique
   email        String          @unique
+  password     String?         // hash bcrypt; null = cuenta sin reclamar (legacy)
+  role         Role            @default(MIEMBRO)
   photoUrl     String?
+  // Perfil personalizable
+  nickname     String?
+  bio          String?
+  accentColor  String?         // color de acento elegido por el usuario (#hex)
+  instagram    String?
+  phone        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
   actividades  ActivityUser[]  // relaciones a actividades
 
   mesazaAsA    MesazaMatch[]    @relation("MesazaCompetitorA")
