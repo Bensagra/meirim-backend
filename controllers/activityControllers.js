@@ -99,7 +99,7 @@ export const updateActivity = async (req, res) => {
     // 2) Resolver participantes: siempre el usuario autenticado. Un SUPER_ADMIN
     //    puede sumar otros por DNI.
     const userIds = new Set([req.user.id]);
-    if (req.user.role === "SUPER_ADMIN" && Array.isArray(extraDnis) && extraDnis.length) {
+    if (req.user.roles?.includes("SUPER_ADMIN") && Array.isArray(extraDnis) && extraDnis.length) {
       const extra = await prisma.user.findMany({
         where: { dni: { in: extraDnis.map(String) } },
         select: { id: true }

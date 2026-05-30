@@ -45,8 +45,8 @@ model User {
   dni          String          @unique
   email        String          @unique
   password     String?         // hash bcrypt; null = cuenta sin reclamar (legacy)
-  role         Role            @default(MIEMBRO)
-  photoUrl     String?
+  roles        Role[]          @default([MIEMBRO]) // todos son MIEMBRO + roles extra
+  photoUrl     String?         // foto única del usuario (avatar = foto en Mesaza)
   // Perfil personalizable
   nickname     String?
   bio          String?

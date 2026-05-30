@@ -63,8 +63,7 @@ export const listUsers = async (req, res) => {
       select: full
         ? {
             id: true, name: true, surname: true, nickname: true, dni: true,
-            email: true, role: true, photoUrl: true, createdAt: true,
-            password: false
+            email: true, roles: true, photoUrl: true, createdAt: true
           }
         : { id: true, name: true, surname: true, nickname: true, dni: true, photoUrl: true }
     });
@@ -120,22 +119,27 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-/** Cambiar el rol de un usuario (solo SUPER_ADMIN, gateado en routes). */
-export const updateUserRole = async (req, res) => {
+/**
+ * Cambiar los roles de un usuario (solo SUPER_ADMIN, gateado en routes).
+ * Recibe un array `roles`. MIEMBRO siempre se incluye (todos son miembros).
+ */
+export const updateUserRoles = async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  const { role } = req.body || {};
   if (Number.isNaN(id)) return res.status(400).json({ error: "ID inválido" });
-  if (!ROLES.includes(role)) return res.status(400).json({ error: "Rol inválido" });
 
-  // Evitar que un super admin se quite el último super admin a sí mismo y quede el sistema sin admins.
-  if (req.user?.id === id && role !== "SUPER_ADMIN") {
-    const superAdmins = await prisma.user.count({ where: { role: "SUPER_ADMIN" } });
+  const incoming = Array.isArray(req.body?.roles) ? req.body.roles : [];
+  // Validar y normalizar: solo roles válidos, sin duplicados, siempre MIEMBRO.
+  const roles = Array.from(new Set(["MIEMBRO", ...incoming.filter((r) => ROLES.includes(r))]));
+
+  // Evitar quedarse sin ningún Super Admin.
+  if (req.user?.id === id && !roles.includes("SUPER_ADMIN")) {
+    const superAdmins = await prisma.user.count({ where: { roles: { has: "SUPER_ADMIN" } } });
     if (superAdmins <= 1) {
       return res.status(400).json({ error: "No podés quitarte el último rol de Super Admin." });
     }
   }
   try {
-    const updated = await prisma.user.update({ where: { id }, data: { role } });
+    const updated = await prisma.user.update({ where: { id }, data: { roles: { set: roles } } });
     res.json(publicUser(updated));
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -34,11 +34,11 @@ router.get("/admin/users", requireRole("SUPER_ADMIN"), (req, res) => {
   req.query.full = "1";
   return userController.listUsers(req, res);
 });
-router.patch("/users/:id/role", requireRole("SUPER_ADMIN"), userController.updateUserRole);
+router.patch("/users/:id/roles", requireRole("SUPER_ADMIN"), userController.updateUserRoles);
 
 // ====== TEMÁTICAS / PROPUESTAS ======
 router.get("/propuestas", proposalControllers.listTematicas);
-router.post("/propuestas", requireAuth, proposalControllers.createTematica);
+router.post("/propuestas", proposalControllers.createTematica); // Banco de Ideas: anónimo, sin login
 
 // ====== ACTIVIDADES ======
 router.put("/actividades", requireRole("ADMIN_ACTIVIDADES"), activityControllers.createActivity); // crear
@@ -135,7 +135,7 @@ router.get('/tematicas', async (req, res) => {
   }
 });
 
-router.post('/tematicas', requireAuth, async (req, res) => {
+router.post('/tematicas', async (req, res) => { // Banco de Ideas: anónimo, sin login
   try {
     const { tematica } = req.body;
     const created = await prisma.tematica.create({ data: { tematica } });

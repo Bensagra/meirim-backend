@@ -29,9 +29,12 @@ npx prisma migrate deploy
 npx prisma generate
 ```
 
-La migración agrega a la tabla `User`: `password`, `role` (default `MIEMBRO`),
-`nickname`, `bio`, `accentColor`, `instagram`, `phone`, `createdAt`, `updatedAt`.
-Es segura sobre datos existentes: las personas ya cargadas quedan como `MIEMBRO`
+Son dos migraciones (se aplican solas en orden con `migrate deploy`):
+- `20260530120000_add_auth_roles`: agrega `password`, `nickname`, `bio`, `accentColor`,
+  `instagram`, `phone`, `createdAt`, `updatedAt` (y un `role` inicial).
+- `20260530130000_multi_roles`: reemplaza `role` por `roles` (**array** de roles).
+
+Es segura sobre datos existentes: las personas ya cargadas quedan como `[MIEMBRO]`
 y **sin contraseña** (cuentas "sin reclamar").
 
 ## 3) Crear el primer Super Admin
@@ -50,7 +53,7 @@ y **sin contraseña** (cuentas "sin reclamar").
 
    **b) Vía SQL** (en el panel de tu Postgres):
    ```sql
-   UPDATE "User" SET role = 'SUPER_ADMIN' WHERE dni = 'TU_DNI';
+   UPDATE "User" SET roles = ARRAY['MIEMBRO','SUPER_ADMIN']::"Role"[] WHERE dni = 'TU_DNI';
    ```
 
 3. Volvé a iniciar sesión (o recargá) y ya vas a ver el **Panel** con la sección
@@ -58,12 +61,18 @@ y **sin contraseña** (cuentas "sin reclamar").
 
 ## Roles y qué desbloquean
 
+Cada usuario tiene **varios** roles (columna `roles` = array). **Todos son `MIEMBRO`**;
+además se les puede marcar uno o más roles extra. Los permisos se suman.
+
 | Rol | Acceso |
 |---|---|
-| **Miembro** | Planificar actividades, votar, jugar, y su perfil personalizable. |
+| **Miembro** (todos) | Planificar actividades, votar, jugar, y su perfil personalizable. |
 | **Editor de Fotos** | + subir/ordenar las galerías (sección Fotos del panel). |
 | **Admin de Actividades** | + actividades, Mesaza, 100 Meirimers, Nominaciones. |
 | **Super Admin** | Todo + gestión de usuarios y asignación de roles. |
+
+> Ej.: alguien puede ser **Miembro + Editor de Fotos + Admin de Actividades** a la vez.
+> El **Banco de Ideas es anónimo** (no requiere login).
 
 ## Notas
 

@@ -40,7 +40,7 @@ export const register = async (req, res) => {
           email: email?.trim() || existing.email
         }
       });
-      const token = signToken({ uid: updated.id, role: updated.role });
+      const token = signToken({ uid: updated.id });
       return res.status(200).json({ token, user: publicUser(updated) });
     }
 
@@ -55,10 +55,10 @@ export const register = async (req, res) => {
         email: email.trim(),
         dni,
         password: hash,
-        role: "MIEMBRO"
+        roles: ["MIEMBRO"]
       }
     });
-    const token = signToken({ uid: created.id, role: created.role });
+    const token = signToken({ uid: created.id });
     res.status(201).json({ token, user: publicUser(created) });
   } catch (error) {
     if (error?.code === "P2002") {
@@ -82,7 +82,7 @@ export const login = async (req, res) => {
     const ok = await bcrypt.compare(String(password), user.password);
     if (!ok) return res.status(401).json({ error: "DNI o contraseña incorrectos." });
 
-    const token = signToken({ uid: user.id, role: user.role });
+    const token = signToken({ uid: user.id });
     res.json({ token, user: publicUser(user) });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -131,9 +131,10 @@ export const bootstrapAdmin = async (req, res) => {
     const user = await prisma.user.findUnique({ where: { dni } });
     if (!user) return res.status(404).json({ error: "No existe un usuario con ese DNI. Registralo primero." });
 
+    const roles = Array.from(new Set([...(user.roles || []), "MIEMBRO", "SUPER_ADMIN"]));
     const updated = await prisma.user.update({
       where: { id: user.id },
-      data: { role: "SUPER_ADMIN" }
+      data: { roles: { set: roles } }
     });
     res.json({ ok: true, user: publicUser(updated) });
   } catch (error) {
